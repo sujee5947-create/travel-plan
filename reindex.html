@@ -1,8 +1,6 @@
-<!DOCTYPE html>
-<html lang="ko">
+<!-- ... existing code ... -->
 <head>
     <meta charset="UTF-8">
-    <!-- 모바일 확대/축소 및 스크롤 허용 설정 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=3.0, user-scalable=yes">
     <title>스마트 여행 플래너</title>
     <!-- Tailwind CSS CDN -->
@@ -11,103 +9,60 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
-        
-        /* 모바일 확대/축소 및 스크롤이 원활하도록 고정 해제 */
-        html {
-            width: 100%;
-            height: 100%;
-            overflow-x: auto;
-            overflow-y: auto;
-        }
-
-        body { 
-            font-family: 'Pretendard', sans-serif; 
-            width: 100%;
-            min-height: 100vh;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            background-color: #f8fafc;
-        }
-
-        *, *:before, *:after {
-            box-sizing: inherit;
-        }
-
+        body { font-family: 'Pretendard', sans-serif; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 8px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .dragging { opacity: 0.4; transform: scale(0.98); }
         .drag-over { border-top: 3px solid #6366f1 !important; }
-
-        img, table, div, iframe {
-            max-width: 100%;
-        }
-
-        /* 모바일 환경에서 상단 헤더 및 버튼들이 잘리지 않도록 유연하게 조정 */
-        @media (max-width: 768px) {
-            header {
-                flex-direction: column;
-                align-items: stretch !important;
-                gap: 10px;
-            }
-            header > div:nth-child(2) {
-                justify-content: flex-end;
-                flex-wrap: wrap;
-            }
-        }
-    </style>      
+    </style>
 </head>
-<body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col overflow-y-auto">
 
-    <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between shrink-0 shadow-xs z-20 gap-3">
-        <div class="flex items-center gap-3 w-full sm:w-auto">
+    <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 shrink-0 shadow-xs z-20">
+        <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-200 shrink-0">
                 <i class="fa-solid fa-compass text-lg"></i>
             </div>
-            <div class="min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                    <h1 id="tripTitleDisplay" class="font-bold text-slate-900 text-base sm:text-xl tracking-tight cursor-pointer hover:text-indigo-600 transition truncate" onclick="openEditTripTitleModal()" title="클릭하여 여행 제목 수정">도쿄 3박 4일 미식 & 힐링 여행</h1>
-                    <button onclick="openEditTripTitleModal()" class="text-slate-400 hover:text-indigo-600 text-xs transition shrink-0" title="여행 제목 수정">
+            <div>
+                <div class="flex flex-wrap items-center gap-2 group">
+                    <h1 id="tripTitleDisplay" class="font-bold text-slate-900 text-base sm:text-xl tracking-tight cursor-pointer hover:text-indigo-600 transition" onclick="openEditTripTitleModal()" title="클릭하여 여행 제목 수정">도쿄 3박 4일 미식 & 힐링 여행</h1>
+                    <button onclick="openEditTripTitleModal()" class="text-slate-400 hover:text-indigo-600 text-xs transition" title="여행 제목 수정">
                         <i class="fa-solid fa-pen"></i>
                     </button>
-                    <span onclick="openEditTripDatesModal()" id="tripDatesBadge" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-xl cursor-pointer transition flex items-center gap-1.5 shrink-0" title="클릭하여 여행 전체 날짜 수정">
+                    <span onclick="openEditTripDatesModal()" id="tripDatesBadge" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-xl cursor-pointer transition flex items-center gap-1.5" title="클릭하여 여행 전체 날짜 수정">
                         <i class="fa-regular fa-calendar-days"></i> <span id="tripDatesText">2026.11.01 ~ 11.04 (3박 4일)</span>
                     </span>
                 </div>
                 <p class="text-xs text-slate-500">실시간 구글지도 길찾기 & 스마트 일정 플래너</p>
             </div>
         </div>
-        <div class="flex items-center gap-2 flex-wrap justify-end w-full sm:w-auto">
-            <div id="collaboratorAvatars" class="hidden sm:flex items-center -space-x-2 mr-2" title="현재 접속 중인 실시간 협업자">
+        <div class="flex items-center gap-2 flex-wrap">
+            <div id="collaboratorAvatars" class="hidden sm:flex items-center -space-x-2 mr-1" title="현재 접속 중인 실시간 협업자">
                 <!-- Dynamically injected user avatars -->
             </div>
-            <button onclick="toggleChatPanel()" class="bg-white hover:bg-slate-50 text-indigo-600 border border-indigo-200 font-semibold px-3 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-1.5 shadow-xs transition active:scale-95 relative" title="실시간 팀 채팅 열기">
-                <i class="fa-solid fa-comments"></i> 채팅
-                <span id="chatBadge" class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping"></span>
-            </button>
             <button onclick="saveToCloudManual()" class="bg-white hover:bg-slate-50 text-emerald-600 border border-emerald-200 font-semibold px-3 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-1.5 shadow-xs transition active:scale-95" title="현재 일정을 클라우드에 안전하게 저장">
                 <i class="fa-solid fa-cloud-arrow-up"></i> 저장
             </button>
-            <button onclick="openShareModal()" class="bg-white hover:bg-slate-50 text-indigo-600 border border-indigo-200 font-semibold px-3 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-1.5 shadow-xs transition active:scale-95" title="친구들과 링크 공유 및 실시간 협업">
+            <button onclick="openShareModal()" class="bg-white hover:bg-slate-50 text-indigo-600 border border-indigo-200 font-semibold px-3.5 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-1.5 shadow-xs transition active:scale-95" title="친구들과 링크 공유 및 실시간 협업">
                 <i class="fa-solid fa-share-nodes"></i> 공유
             </button>
-            <button onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3.5 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-sm shadow-indigo-100 transition active:scale-95">
+            <button onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3.5 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-1.5 shadow-sm shadow-indigo-100 transition active:scale-95">
                 <i class="fa-solid fa-plus"></i> 일정 추가
             </button>
         </div>
     </header>
 
-    <div class="flex-1 flex flex-col lg:flex-row relative w-full">
+    <div class="flex-1 flex flex-col lg:flex-row relative">
         
-        <div class="w-full lg:w-[480px] bg-white border-r border-slate-200 flex flex-col shrink-0 z-10 shadow-lg">
+        <div class="w-full lg:w-[480px] bg-white border-r border-slate-200 flex flex-col shrink-0 shadow-lg min-h-[500px]">
             
             <div class="bg-slate-50/80 p-3 border-b border-slate-200 flex items-center gap-2 overflow-x-auto custom-scrollbar shrink-0" id="dayTabsContainer">
                 <!-- Dynamically injected day tabs -->
             </div>
 
-            <div class="px-5 py-3.5 bg-gradient-to-r from-indigo-50/80 via-white to-slate-50 border-b border-slate-100 flex items-center justify-between shrink-0">
+            <div class="px-4 sm:px-5 py-3.5 bg-gradient-to-r from-indigo-50/80 via-white to-slate-50 border-b border-slate-100 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-2">
                     <span id="activeDayBadge" class="font-extrabold text-indigo-700 text-base">Day 1</span>
                     <span id="activeDayDate" class="text-xs font-semibold text-slate-500 bg-indigo-50 px-2.5 py-1 rounded-lg">11월 1일 (일)</span>
@@ -115,7 +70,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <button onclick="viewFullRouteTransit()" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-white hover:bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-200 shadow-2xs flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-train-subway text-indigo-500"></i> 전체 동선 보기
+                        <i class="fa-solid fa-train-subway text-indigo-500"></i> 동선 보기
                     </button>
                 </div>
             </div>
@@ -132,71 +87,96 @@
                 </div>
             </div>
 
-            <div class="p-4 space-y-3.5 bg-slate-50/50" id="itineraryListContainer">
+            <div class="flex-1 overflow-y-auto max-h-[60vh] lg:max-h-none custom-scrollbar p-4 space-y-3.5 bg-slate-50/50" id="itineraryListContainer">
                 <!-- Dynamically injected timeline items -->
             </div>
 
-            <div class="border-t border-slate-200 bg-white p-3.5 shrink-0 flex flex-col">
+            <div class="border-t border-slate-200 bg-white p-3.5 shrink-0 min-h-[200px] flex flex-col">
                 <div class="flex items-center justify-between mb-2 shrink-0">
                     <span id="gourmetSectionTitle" class="text-xs font-bold text-slate-700 flex items-center gap-1.5 truncate pr-2">
                         <i class="fa-solid fa-utensils text-amber-500"></i> 선택한 장소 주변 맛집 & 카페
                     </span>
                     <span id="gourmetCountBadge" class="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full shrink-0">0곳 추천</span>
                 </div>
-                <div id="gourmetRecommendations" class="space-y-2 pr-1 max-h-[200px] overflow-y-auto custom-scrollbar">
+                <div id="gourmetRecommendations" class="flex-1 overflow-y-auto max-h-[160px] custom-scrollbar space-y-2 pr-1">
                     <!-- Dynamically injected recommended spots -->
                 </div>
             </div>
         </div>
 
-        <div class="w-full h-[450px] lg:h-auto lg:flex-1 bg-slate-200 relative flex flex-col">
+        <div class="flex-1 bg-slate-200 relative min-h-[400px] lg:min-h-0 flex flex-col">
             <div class="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-lg border border-slate-200 flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span id="mapLegendTitle" class="text-xs font-bold text-slate-700">구글지도 길찾기 연동 네비게이션</span>
             </div>
-            <iframe id="mapFrame" class="w-full h-full border-0 min-h-[450px]" loading="lazy" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3240.828065521074!2d139.7000523152582!3d35.69381313876805!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x60188cd0d6b1ba1f%3A0x1c441ed1c31d75f2!2sShinjuku%20Station!5e0!3m2!1sko!2skr!4v1650000000000!5m2!1sko!2skr"></iframe>
+            <iframe id="mapFrame" class="w-full h-full min-h-[400px] border-0" loading="lazy" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3240.828065521074!2d139.7000523152582!3d35.69381313876805!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x60188cd0d6b1ba1f%3A0x1c441ed1c31d75f2!2sShinjuku%20Station!5e0!3m2!1sko!2skr!4v1650000000000!5m2!1sko!2skr"></iframe>
         </div>
 
-        <div id="chatPanel" class="absolute right-0 top-0 bottom-0 w-80 bg-white border-l border-slate-200 shadow-2xl z-30 transform translate-x-full transition-transform duration-300 flex flex-col">
-            <div class="p-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-comments text-indigo-400"></i>
-                    <h3 class="font-bold text-sm">실시간 팀 협업 채팅</h3>
+    </div>
+
+    <!-- Modals & Toasts -->
+    <div id="tripTitleModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 class="font-bold text-slate-900 text-lg mb-4">여행 제목 수정</h3>
+            <input type="text" id="tripTitleInput" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm mb-4 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden" placeholder="여행 제목을 입력하세요">
+            <div class="flex justify-end gap-2">
+                <button onclick="closeEditTripTitleModal()" class="px-4 py-2 rounded-xl text-slate-600 bg-slate-100 hover:bg-slate-200 text-xs font-semibold">취소</button>
+                <button onclick="saveTripTitle()" class="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tripDatesModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 class="font-bold text-slate-900 text-lg mb-4">여행 기간 수정</h3>
+            <div class="space-y-3 mb-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">시작일</label>
+                    <input type="date" id="tripStartDateInput" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden">
                 </div>
-                <button onclick="toggleChatPanel()" class="text-slate-400 hover:text-white transition w-7 h-7 rounded-full flex items-center justify-center bg-slate-800">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">종료일</label>
+                    <input type="date" id="tripEndDateInput" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-hidden">
+                </div>
             </div>
-            <div id="chatMessagesContainer" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 text-xs custom-scrollbar">
-                <div class="text-center text-slate-400 py-4">채팅 기록이 없습니다. 팀원들과 대화를 시작해보세요!</div>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeEditTripDatesModal()" class="px-4 py-2 rounded-xl text-slate-600 bg-slate-100 hover:bg-slate-200 text-xs font-semibold">취소</button>
+                <button onclick="saveTripDates()" class="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold">저장</button>
             </div>
-            <form onsubmit="handleChatSubmit(event)" class="p-3 bg-white border-t border-slate-200 flex gap-2 shrink-0">
-                <input type="text" id="chatInput" placeholder="일정 의견이나 메모를 입력하세요..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
-                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shrink-0 transition shadow-sm">전송</button>
-            </form>
+        </div>
+    </div>
+
+    <div id="shareModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 class="font-bold text-slate-900 text-lg mb-2"><i class="fa-solid fa-share-nodes text-indigo-600 mr-2"></i>일정 공유 및 실시간 협업</h3>
+            <p class="text-xs text-slate-500 mb-4">아래 공유 링크를 복사하여 친구들에게 전달하세요.</p>
+            <div class="flex items-center gap-2 mb-4">
+                <input type="text" id="shareLinkInput" readonly class="flex-1 px-3.5 py-2 rounded-xl border border-slate-300 text-xs bg-slate-50 text-slate-600 focus:outline-hidden">
+                <button onclick="copyShareLink()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shrink-0">복사</button>
+            </div>
+            <div class="text-[11px] text-slate-400 bg-slate-50 p-3 rounded-xl mb-4 border border-slate-100 space-y-1">
+                <div id="syncStatusText" class="font-medium"><i class="fa-solid fa-cloud-check text-emerald-500 mr-1"></i> 실시간 클라우드 동기화 중</div>
+                <div id="userIdDisplay" class="font-mono">ID: -</div>
+            </div>
+            <div class="flex justify-end">
+                <button onclick="closeShareModal()" class="px-4 py-2 rounded-xl text-slate-600 bg-slate-100 hover:bg-slate-200 text-xs font-semibold">닫기</button>
+            </div>
         </div>
     </div>
 
     <!-- Schedule Add/Edit Modal -->
-    <div id="scheduleModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 transform transition-all">
-            <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
-                <h3 id="modalTitleText" class="font-bold text-slate-900 text-lg">새 일정 추가</h3>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-lg w-8 h-8 rounded-full flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            
-            <form id="scheduleForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+    <div id="scheduleModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 id="modalTitleText" class="font-bold text-slate-900 text-lg mb-4">새 일정 추가</h3>
+            <form id="scheduleForm" onsubmit="handleFormSubmit(event)" class="space-y-3">
                 <input type="hidden" id="editIndex" value="">
+                
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">시작 시간</label>
-                        <div class="flex gap-1.5">
-                            <select id="startHourInput" required class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <!-- Dynamically populated hours -->
-                            </select>
-                            <select id="startMinuteInput" required class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <div class="flex gap-1">
+                            <select id="startHourInput" class="w-full px-2 py-2 rounded-xl border border-slate-300 text-xs"></select>
+                            <select id="startMinuteInput" class="w-full px-2 py-2 rounded-xl border border-slate-300 text-xs">
                                 <option value="00">00분</option>
                                 <option value="10">10분</option>
                                 <option value="20">20분</option>
@@ -208,11 +188,9 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">종료 시간</label>
-                        <div class="flex gap-1.5">
-                            <select id="endHourInput" required class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <!-- Dynamically populated hours -->
-                            </select>
-                            <select id="endMinuteInput" required class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <div class="flex gap-1">
+                            <select id="endHourInput" class="w-full px-2 py-2 rounded-xl border border-slate-300 text-xs"></select>
+                            <select id="endMinuteInput" class="w-full px-2 py-2 rounded-xl border border-slate-300 text-xs">
                                 <option value="00">00분</option>
                                 <option value="10">10분</option>
                                 <option value="20">20분</option>
@@ -225,104 +203,36 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">카테고리</label>
-                    <select id="categoryInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="sightseeing">📍 관광/명소</option>
-                        <option value="food">🍽️ 맛집/카페</option>
-                        <option value="hotel">🏨 숙소/체크인</option>
-                        <option value="transport">🚆 공항/이동</option>
-                        <option value="shopping">🛍️ 쇼핑</option>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">분류</label>
+                    <select id="categoryInput" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs">
+                        <option value="sightseeing">관광</option>
+                        <option value="food">맛집/카페</option>
+                        <option value="hotel">숙소</option>
+                        <option value="transport">이동</option>
+                        <option value="shopping">쇼핑</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">일정 제목</label>
-                    <input type="text" id="titleInput" required placeholder="예: 센소지 및 아사쿠사 탐방" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">일정명</label>
+                    <input type="text" id="titleInput" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs" placeholder="예: 이치란 라멘 점심">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">장소 / 위치 (구글맵 연동)</label>
-                    <input type="text" id="locationInput" required placeholder="예: Asakusa Shrine, Tokyo" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">장소 / 구글 지도 키워드</label>
+                    <input type="text" id="locationInput" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs" placeholder="예: Ichiran Shinjuku">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">메모 / 팁 (선택)</label>
-                    <textarea id="memoInput" rows="2" placeholder="예: 오미쿠지 뽑기 및 기념품 구경" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">메모</label>
+                    <textarea id="memoInput" rows="2" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs" placeholder="예: 비법 소스 5배 추천"></textarea>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">취소</button>
-                    <button type="submit" class="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm">저장하기</button>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-slate-600 bg-slate-100 hover:bg-slate-200 text-xs font-semibold">취소</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold">저장</button>
                 </div>
             </form>
-        </div>
-    </div>
-
-    <!-- Trip Title Modal -->
-    <div id="tripTitleModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
-            <h3 class="font-bold text-slate-900 text-base mb-3">여행 제목 변경</h3>
-            <input type="text" id="tripTitleInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="예: 오사카 2박 3일 미식 여행">
-            <div class="flex items-center justify-end gap-2">
-                <button onclick="closeEditTripTitleModal()" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">취소</button>
-                <button onclick="saveTripTitle()" class="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition">확인</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Trip Dates Modal -->
-    <div id="tripDatesModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
-            <h3 class="font-bold text-slate-900 text-base mb-3 flex items-center gap-2">
-                <i class="fa-regular fa-calendar-days text-indigo-600"></i> 여행 전체 일정(날짜) 변경
-            </h3>
-            <div class="space-y-3 mb-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">시작일</label>
-                    <input type="date" id="tripStartDateInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">종료일</label>
-                    <input type="date" id="tripEndDateInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                </div>
-            </div>
-            <div class="flex items-center justify-end gap-2">
-                <button onclick="closeEditTripDatesModal()" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">취소</button>
-                <button onclick="saveTripDates()" class="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition">적용하기</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Share & Collaboration Modal -->
-    <div id="shareModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-                <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
-                    <i class="fa-solid fa-users text-indigo-600"></i> 실시간 협업 링크 공유
-                </h3>
-                <button onclick="closeShareModal()" class="text-slate-400 hover:text-slate-600 w-7 h-7 rounded-full flex items-center justify-center bg-slate-50 transition">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <p class="text-xs text-slate-500 mb-4">
-                이 링크를 공유하면 누구든지 접속하여 일정을 자유롭게 추가, 수정하고 실시간으로 함께 업데이트할 수 있습니다!
-            </p>
-            <div class="mb-4">
-                <label class="block text-xs font-semibold text-slate-600 mb-1">공동 편집 링크</label>
-                <div class="flex gap-2">
-                    <input type="text" id="shareLinkInput" readonly class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600 focus:outline-none">
-                    <button onclick="copyShareLink()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-xs shrink-0 transition">링크 복사</button>
-                </div>
-            </div>
-            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3 mb-4 text-xs text-indigo-900 flex items-center justify-between">
-                <span id="syncStatusText" class="font-semibold flex items-center gap-1.5">
-                    <i class="fa-solid fa-circle-check text-emerald-500"></i> 실시간 공동 편집 활성화됨
-                </span>
-                <span id="userIdDisplay" class="font-mono text-[10px] opacity-70">ID: 로딩중...</span>
-            </div>
-            <div class="flex items-center justify-end">
-                <button onclick="closeShareModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition">확인</button>
-            </div>
         </div>
     </div>
 
@@ -332,15 +242,6 @@
         <span id="toastText">저장되었습니다.</span>
     </div>
 
-    <!-- Firebase SDK Imports -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        window.firebaseModules = { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, getFirestore, doc, setDoc, getDoc, onSnapshot };
-    </script>
-
     <script>
         // --- Application State ---
         let tripTitle = "도쿄 3박 4일 미식 & 힐링 여행";
@@ -348,7 +249,6 @@
         let tripEndDate = "2026-11-04";
         let activeDayIndex = 0;
         let selectedItemIndex = 0;
-        let chatMessages = [];
         let myNickname = "여행자_" + Math.floor(Math.random() * 900 + 100);
         let appId = "smart-travel-planner-v1";
         let db = null;
@@ -405,7 +305,7 @@
             { keyword: 'general', name: '신주쿠 교엔 야외 카페', rating: '4.6', time: '도보 10분', snippet: '아름다운 정원 풍경 속에서 즐기는 힐링 티타임', location: 'Shinjuku Gyoen' }
         ];
 
-        // Default initial itinerary data (3박 4일 도쿄 여행)
+        // Default initial itinerary data (3박 4일 도쿄 여행) - 그대로 유지
         let daysData = [
             {
                 day: 1,
@@ -425,26 +325,26 @@
                     { id: 'i6', startTime: '09:30', endTime: '12:00', category: 'sightseeing', title: '메이지 신궁 고즈넉한 숲길 산책', location: 'Meiji Jingu Shrine Tokyo', memo: '도심 속 거대한 숲과 도리이 관람', transportMode: 'transit', transportTime: '대중교통(지하철/버스): 15분 (¥170)' },
                     { id: 'i7', startTime: '12:30', endTime: '14:00', category: 'food', title: '하라주쿠교자루에서 바삭한 군만두 점심', location: 'Harajuku Gyozaro', memo: '마늘/부추 선택 가능한 가성비 만두 맛집', transportMode: 'walk', transportTime: '도보 9분 (700m)' },
                     { id: 'i8', startTime: '14:15', endTime: '17:00', category: 'shopping', title: '시부야 스크램블 스퀘어 & 전망대 방문', location: 'Shibuya Scramble Square', memo: '사전 예약한 시부야 스카이에서 도쿄 전경 조망', transportMode: 'transit', transportTime: '대중교통(지하철/버스): 12분 (¥160)' },
-                    { id: 'i9', startTime: '17:30', endTime: '19:30', category: 'food', title: '규카츠 모토무라 시부야에서 저녁 식사', location: 'Gyukatsu Motomura Shibuya', memo: '화로에 구워 먹는 고소한 규카츠', transportMode: 'walk', transportTime: '도보 7분 (500m)' }
+                    { id: 'i9', startTime: '17:30', endTime: '19:30', category: 'food', title: '규카츠 모토무라 시부야에서 저녁 식사', location: 'Gyukatsu Motomura Shibuya', memo: '개인 화로에 구워 먹는 고소한 규카츠 정식', transportMode: 'walk', transportTime: '도보 5분 (350m)' }
                 ]
             },
             {
                 day: 3,
                 date: "11월 3일 (화)",
                 items: [
-                    { id: 'i10', startTime: '10:00', endTime: '13:00', category: 'sightseeing', title: '아사쿠사 센소지 사찰 및 나카미세도리 구경', location: 'Senso-ji Asakusa', memo: '도쿄에서 가장 오래된 사찰과 전통 상점가 탐방', transportMode: 'transit', transportTime: '대중교통(지하철/버스): 25분 (¥210)' },
-                    { id: 'i11', startTime: '13:15', endTime: '14:30', category: 'food', title: '아사쿠사 우나토토에서 장어덮밥 점심', location: 'Unatoto Asakusa', memo: '가성비 훌륭한 숯불 장어덮밥', transportMode: 'walk', transportTime: '도보 3분 (200m)' },
-                    { id: 'i12', startTime: '15:00', endTime: '17:30', category: 'sightseeing', title: '도쿄 스카이트리 및 소라마치 쇼핑몰', location: 'Tokyo Skytree', memo: '세계 최고 높이 타워에서 바라보는 환상적인 뷰', transportMode: 'transit', transportTime: '대중교통/도보: 15분' },
-                    { id: 'i13', startTime: '18:30', endTime: '20:30', category: 'food', title: '긴자 바이린 본점에서 히레카츠 저녁', location: 'Ginza Bairin Main Store', memo: '정통 히레카츠와 카츠샌드', transportMode: 'transit', transportTime: '대중교통: 22분 (¥200)' }
+                    { id: 'i10', startTime: '10:00', endTime: '12:30', category: 'sightseeing', title: '아사쿠사 센소지 및 나미세도리 탐방', location: 'Senso-ji Asakusa Tokyo', memo: '도쿄에서 가장 오래된 사찰, 오미쿠지 뽑기 체험', transportMode: 'transit', transportTime: '대중교통(지하철/버스): 28분 (¥310)' },
+                    { id: 'i11', startTime: '12:45', endTime: '14:00', category: 'food', title: '아사쿠사 우나토토에서 장어덮밥 점심', location: 'Unatoto Asakusa', memo: '합리적인 가격으로 즐기는 숯불 장어덮밥', transportMode: 'walk', transportTime: '도보 4분 (300m)' },
+                    { id: 'i12', startTime: '14:30', endTime: '17:00', category: 'shopping', title: '아키하바라 전자상가 및 애니메이션 굿즈 쇼핑', location: 'Akihabara Electric Town', memo: '피규어 및 최신 전자기기 구경', transportMode: 'transit', transportTime: '대중교통(지하철/버스): 18분 (¥210)' },
+                    { id: 'i13', startTime: '17:30', endTime: '20:00', category: 'food', title: '긴자 명품거리 구경 및 스시 오마카세 저녁', location: 'Ginza Tokyo', memo: '화려한 긴자 야경과 함께하는 프리미엄 스시', transportMode: 'transit', transportTime: '대중교통(지하철/버스): 16분 (¥210)' }
                 ]
             },
             {
                 day: 4,
                 date: "11월 4일 (수)",
                 items: [
-                    { id: 'i14', startTime: '10:00', endTime: '12:00', category: 'shopping', title: '신주쿠 이세탄 백화점 디저트 쇼핑 및 기념품', location: 'Isetan Shinjuku', memo: '도쿄 최고의 백화점에서 지인 선물 및 간식 구매', transportMode: 'transit', transportTime: '대중교통: 15분 (¥180)' },
-                    { id: 'i15', startTime: '12:30', endTime: '13:30', category: 'food', title: '후우운사에서 걸쭉한 츠케멘 마지막 식사', location: 'Fuunji Shinjuku', memo: '여행의 대미를 장식할 최고의 츠케멘', transportMode: 'walk', transportTime: '도보 8분 (600m)' },
-                    { id: 'i16', startTime: '14:00', endTime: '15:30', category: 'transport', title: '나리타 익스프레스(N\'EX) 탑승 및 공항 이동', location: 'Shinjuku Station', memo: '신주쿠역에서 나리타공항으로 이동 후 출국 수속', transportMode: 'transit', transportTime: '도보 5분 + N\'EX 55분' }
+                    { id: 'i14', startTime: '10:00', endTime: '11:30', category: 'sightseeing', title: '신주쿠 중앙공원 산책 및 기념품 쇼핑', location: 'Shinjuku Chuo Park', memo: '여행 마지막 날 여유로운 산책과 드럭스토어 쇼핑', transportMode: 'transit', transportTime: '대중교통(지하철/버스): 12분 (¥180)' },
+                    { id: 'i15', startTime: '12:00', endTime: '13:30', category: 'food', title: '후우운사 츠케멘으로 마지막 도쿄 미식 즐기기', location: 'Fuunji Shinjuku', memo: '진한 어묵/닭육수 츠케멘', transportMode: 'walk', transportTime: '도보 7분 (500m)' },
+                    { id: 'i16', startTime: '14:00', endTime: '16:30', category: 'transport', title: '나리타 공항 이동 및 출국 수속', location: 'Narita International Airport', memo: 'N\'EX 열차 탑승 및 면세점 쇼핑 후 귀국', transportMode: 'transit', transportTime: '공항철도 직통열차: 55분 (¥2,500)' }
                 ]
             }
         ];
@@ -499,24 +399,23 @@
                     if (parsed.tripStartDate) tripStartDate = parsed.tripStartDate;
                     if (parsed.tripEndDate) tripEndDate = parsed.tripEndDate;
                     if (parsed.daysData && Array.isArray(parsed.daysData)) daysData = parsed.daysData;
-                    if (parsed.chatMessages && Array.isArray(parsed.chatMessages)) chatMessages = parsed.chatMessages;
                 }
             } catch (e) {
                 console.warn("Local storage load warning:", e);
             }
 
-            document.getElementById('tripTitleDisplay').textContent = tripTitle;
+            const tripTitleEl = document.getElementById('tripTitleDisplay');
+            if (tripTitleEl) tripTitleEl.textContent = tripTitle;
             updateTripDatesDisplay();
             renderDayTabs();
             await renderActiveDayContent();
-            renderChatMessages();
 
             try {
-                const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, getFirestore, doc, getDoc, onSnapshot } = window.firebaseModules;
+                const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, getFirestore, doc, getDoc, onSnapshot } = window.firebaseModules || {};
                 appId = typeof __app_id !== 'undefined' ? __app_id : 'smart-travel-planner-v1';
                 const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
                 
-                if (firebaseConfig && firebaseConfig.apiKey) {
+                if (firebaseConfig && firebaseConfig.apiKey && initializeApp) {
                     const app = initializeApp(firebaseConfig);
                     db = getFirestore(app);
                     auth = getAuth(app);
@@ -528,8 +427,11 @@
                     }
 
                     userId = auth.currentUser?.uid || crypto.randomUUID();
-                    document.getElementById('userIdDisplay').textContent = `ID: ${userId.substring(0, 8)}...`;
-                    document.getElementById('shareLinkInput').value = window.location.href;
+                    const userIdEl = document.getElementById('userIdDisplay');
+                    if (userIdEl) userIdEl.textContent = `ID: ${userId.substring(0, 8)}...`;
+                    
+                    const shareInput = document.getElementById('shareLinkInput');
+                    if (shareInput) shareInput.value = window.location.href;
 
                     const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'itinerary_state');
                     const snap = await getDoc(docRef);
@@ -539,12 +441,10 @@
                         if (data.tripStartDate) tripStartDate = data.tripStartDate;
                         if (data.tripEndDate) tripEndDate = data.tripEndDate;
                         if (data.daysData && Array.isArray(data.daysData)) daysData = data.daysData;
-                        if (data.chatMessages && Array.isArray(data.chatMessages)) chatMessages = data.chatMessages;
-                        document.getElementById('tripTitleDisplay').textContent = tripTitle;
+                        if (tripTitleEl) tripTitleEl.textContent = tripTitle;
                         updateTripDatesDisplay();
                         renderDayTabs();
                         await renderActiveDayContent();
-                        renderChatMessages();
                     }
 
                     onSnapshot(docRef, async (docSnap) => {
@@ -553,7 +453,7 @@
                             let updated = false;
                             if (data.tripTitle && data.tripTitle !== tripTitle) {
                                 tripTitle = data.tripTitle;
-                                document.getElementById('tripTitleDisplay').textContent = tripTitle;
+                                if (tripTitleEl) tripTitleEl.textContent = tripTitle;
                                 updated = true;
                             }
                             if (data.tripStartDate && data.tripStartDate !== tripStartDate) {
@@ -566,11 +466,6 @@
                             }
                             if (data.daysData && Array.isArray(data.daysData) && JSON.stringify(data.daysData) !== JSON.stringify(daysData)) {
                                 daysData = data.daysData;
-                                updated = true;
-                            }
-                            if (data.chatMessages && Array.isArray(data.chatMessages) && JSON.stringify(data.chatMessages) !== JSON.stringify(chatMessages)) {
-                                chatMessages = data.chatMessages;
-                                renderChatMessages();
                                 updated = true;
                             }
                             if (updated) {
@@ -588,15 +483,25 @@
                     setInterval(updateCollaboratorPresence, 15000);
 
                 } else {
-                    document.getElementById('syncStatusText').innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-500"></i> 로컬 모드 (브라우저 저장)`;
-                    document.getElementById('userIdDisplay').textContent = `ID: Local`;
-                    document.getElementById('shareLinkInput').value = window.location.href;
+                    const statusEl = document.getElementById('syncStatusText');
+                    if (statusEl) statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-500"></i> 로컬 모드 (브라우저 저장)`;
+                    
+                    const userIdEl = document.getElementById('userIdDisplay');
+                    if (userIdEl) userIdEl.textContent = `ID: Local`;
+
+                    const shareInput = document.getElementById('shareLinkInput');
+                    if (shareInput) shareInput.value = window.location.href;
                 }
             } catch (e) {
                 console.log("Running in standalone local storage mode:", e);
-                document.getElementById('syncStatusText').innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-500"></i> 로컬 모드 (오프라인 안전 저장)`;
-                document.getElementById('userIdDisplay').textContent = `ID: Local`;
-                document.getElementById('shareLinkInput').value = window.location.href;
+                const statusEl = document.getElementById('syncStatusText');
+                if (statusEl) statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-500"></i> 로컬 모드 (오프라인 안전 저장)`;
+                
+                const userIdEl = document.getElementById('userIdDisplay');
+                if (userIdEl) userIdEl.textContent = `ID: Local`;
+
+                const shareInput = document.getElementById('shareLinkInput');
+                if (shareInput) shareInput.value = window.location.href;
             }
         };
 
@@ -640,7 +545,6 @@
                     tripStartDate: tripStartDate,
                     tripEndDate: tripEndDate,
                     daysData: daysData,
-                    chatMessages: chatMessages,
                     updatedAt: new Date().toISOString()
                 }));
             } catch (e) {
@@ -665,7 +569,6 @@
                     tripStartDate: tripStartDate,
                     tripEndDate: tripEndDate,
                     daysData: daysData,
-                    chatMessages: chatMessages,
                     updatedAt: new Date().toISOString(),
                     updatedBy: userId
                 });
@@ -680,53 +583,6 @@
 
         async function saveToCloudManual() {
             await saveToCloud();
-        }
-
-        function toggleChatPanel() {
-            const panel = document.getElementById('chatPanel');
-            panel.classList.toggle('translate-x-full');
-            document.getElementById('chatBadge').classList.add('hidden');
-        }
-
-        function handleChatSubmit(e) {
-            e.preventDefault();
-            const input = document.getElementById('chatInput');
-            const text = input.value.trim();
-            if (!text) return;
-
-            chatMessages.push({
-                id: 'msg_' + Date.now(),
-                sender: myNickname,
-                text: text,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            });
-
-            input.value = '';
-            renderChatMessages();
-            saveToCloud();
-        }
-
-        function renderChatMessages() {
-            const container = document.getElementById('chatMessagesContainer');
-            if (!chatMessages || chatMessages.length === 0) {
-                container.innerHTML = '<div class="text-center text-slate-400 py-4">채팅 기록이 없습니다. 팀원들과 대화를 시작해보세요!</div>';
-                return;
-            }
-
-            container.innerHTML = '';
-            chatMessages.forEach(msg => {
-                const bubble = document.createElement('div');
-                const isMe = msg.sender === myNickname;
-                bubble.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-2`;
-                bubble.innerHTML = `
-                    <span class="text-[10px] text-slate-400 mb-0.5 px-1">${msg.sender} (${msg.time})</span>
-                    <div class="${isMe ? 'bg-indigo-600 text-white rounded-2xl rounded-tr-xs' : 'bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-tl-xs'} px-3 py-2 shadow-2xs max-w-[85%] text-xs leading-relaxed">
-                        ${msg.text}
-                    </div>
-                `;
-                container.appendChild(bubble);
-            });
-            container.scrollTop = container.scrollHeight;
         }
 
         function showToast(msg) {
@@ -1311,12 +1167,10 @@
         window.openShareModal = openShareModal;
         window.closeShareModal = closeShareModal;
         window.copyShareLink = copyShareLink;
-        window.toggleChatPanel = toggleChatPanel;
         window.saveToCloudManual = saveToCloudManual;
         window.openAddModal = openAddModal;
         window.closeModal = closeModal;
         window.handleFormSubmit = handleFormSubmit;
-        window.handleChatSubmit = handleChatSubmit;
         window.openEditModal = openEditModal;
         window.deleteScheduleItem = deleteScheduleItem;
         window.focusLocationOnMap = focusLocationOnMap;
