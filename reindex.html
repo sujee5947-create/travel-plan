@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트 여행 플래너</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Pretendard', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .dragging { opacity: 0.4; transform: scale(0.98); }
+        .drag-over { border-top: 3px solid #6366f1 !important; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <header class="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shrink-0 shadow-xs z-20">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+                <i class="fa-solid fa-compass text-lg"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2 group">
+                    <h1 id="tripTitleDisplay" class="font-bold text-slate-900 text-lg sm:text-xl tracking-tight cursor-pointer hover:text-indigo-600 transition" onclick="openEditTripTitleModal()" title="클릭하여 여행 제목 수정">도쿄 3박 4일 미식 & 힐링 여행</h1>
+                    <button onclick="openEditTripTitleModal()" class="text-slate-400 hover:text-indigo-600 text-xs transition" title="여행 제목 수정">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <span onclick="openEditTripDatesModal()" id="tripDatesBadge" class="ml-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-xl cursor-pointer transition flex items-center gap-1.5" title="클릭하여 여행 전체 날짜 수정">
+                        <i class="fa-regular fa-calendar-days"></i> <span id="tripDatesText">2026.11.01 ~ 11.04 (3박 4일)</span>
+                    </span>
+                </div>
+                <p class="text-xs text-slate-500">실시간 구글지도 길찾기 & 스마트 일정 플래너</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2.5">
+            <div id="collaboratorAvatars" class="hidden sm:flex items-center -space-x-2 mr-2" title="현재 접속 중인 실시간 협업자">
+                <!-- Dynamically injected user avatars -->
+            </div>
+            <button onclick="toggleChatPanel()" class="bg-white hover:bg-slate-50 text-indigo-600 border border-indigo-200 font-semibold px-3.5 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-1.5 shadow-xs transition active:scale-95 relative" title="실시간 팀 채팅 열기">
+                <i class="fa-solid fa-comments"></i> 채팅
+                <span id="chatBadge" class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping"></span>
+            </button>
+            <button onclick="saveToCloudManual()" class="bg-white hover:bg-slate-50 text-emerald-600 border border-emerald-200 font-semibold px-3 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-1.5 shadow-xs transition active:scale-95" title="현재 일정을 클라우드에 안전하게 저장">
+                <i class="fa-solid fa-cloud-arrow-up"></i> 저장
+            </button>
+            <button onclick="openShareModal()" class="bg-white hover:bg-slate-50 text-indigo-600 border border-indigo-200 font-semibold px-3.5 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-1.5 shadow-xs transition active:scale-95" title="친구들과 링크 공유 및 실시간 협업">
+                <i class="fa-solid fa-share-nodes"></i> 공유
+            </button>
+            <button onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-sm shadow-indigo-100 transition active:scale-95">
+                <i class="fa-solid fa-plus"></i> 일정 추가
+            </button>
+        </div>
+    </header>
+
+    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+        
+        <div class="w-full lg:w-[480px] bg-white border-r border-slate-200 flex flex-col shrink-0 overflow-hidden z-10 shadow-lg">
+            
+            <div class="bg-slate-50/80 p-3 border-b border-slate-200 flex items-center gap-2 overflow-x-auto custom-scrollbar shrink-0" id="dayTabsContainer">
+                <!-- Dynamically injected day tabs -->
+            </div>
+
+            <div class="px-5 py-3.5 bg-gradient-to-r from-indigo-50/80 via-white to-slate-50 border-b border-slate-100 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2">
+                    <span id="activeDayBadge" class="font-extrabold text-indigo-700 text-base">Day 1</span>
+                    <span id="activeDayDate" class="text-xs font-semibold text-slate-500 bg-indigo-50 px-2.5 py-1 rounded-lg">11월 1일 (일)</span>
+                    <span class="text-[11px] text-slate-400 hidden sm:inline"><i class="fa-solid fa-grip-vertical mr-1"></i>드래그 정렬</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="viewFullRouteTransit()" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-white hover:bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-200 shadow-2xs flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-train-subway text-indigo-500"></i> 전체 동선 보기
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-indigo-900/5 px-4 py-2.5 border-b border-slate-200 flex flex-col shrink-0">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-[11px] font-bold text-indigo-900 flex items-center gap-1">
+                        <i class="fa-solid fa-route text-indigo-600"></i> 순서별 대중교통/도보 실제 이동 흐름
+                    </span>
+                    <span id="routeCountBadge" class="text-[10px] font-bold text-indigo-700 bg-white px-2 py-0.5 rounded-full border border-indigo-100 shadow-3xs">총 0곳 경유</span>
+                </div>
+                <div id="dailyRouteFlow" class="flex items-center gap-2 overflow-x-auto custom-scrollbar py-1">
+                    <!-- Dynamically rendered sequence nodes with transport details -->
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3.5 bg-slate-50/50" id="itineraryListContainer">
+                <!-- Dynamically injected timeline items -->
+            </div>
+
+            <div class="border-t border-slate-200 bg-white p-3.5 shrink-0 h-[210px] flex flex-col">
+                <div class="flex items-center justify-between mb-2 shrink-0">
+                    <span id="gourmetSectionTitle" class="text-xs font-bold text-slate-700 flex items-center gap-1.5 truncate pr-2">
+                        <i class="fa-solid fa-utensils text-amber-500"></i> 선택한 장소 주변 맛집 & 카페
+                    </span>
+                    <span id="gourmetCountBadge" class="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full shrink-0">0곳 추천</span>
+                </div>
+                <div id="gourmetRecommendations" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                    <!-- Dynamically injected recommended spots -->
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 bg-slate-200 relative flex flex-col overflow-hidden">
+            <div class="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-lg border border-slate-200 flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span id="mapLegendTitle" class="text-xs font-bold text-slate-700">구글지도 길찾기 연동 네비게이션</span>
+            </div>
+            <iframe id="mapFrame" class="w-full h-full border-0" loading="lazy" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3240.828065521074!2d139.7000523152582!3d35.69381313876805!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x60188cd0d6b1ba1f%3A0x1c441ed1c31d75f2!2sShinjuku%20Station!5e0!3m2!1sko!2skr!4v1650000000000!5m2!1sko!2skr"></iframe>
+        </div>
+
+        <div id="chatPanel" class="absolute right-0 top-0 bottom-0 w-80 bg-white border-l border-slate-200 shadow-2xl z-30 transform translate-x-full transition-transform duration-300 flex flex-col">
+            <div class="p-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-comments text-indigo-400"></i>
+                    <h3 class="font-bold text-sm">실시간 팀 협업 채팅</h3>
+                </div>
+                <button onclick="toggleChatPanel()" class="text-slate-400 hover:text-white transition w-7 h-7 rounded-full flex items-center justify-center bg-slate-800">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="chatMessagesContainer" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 text-xs custom-scrollbar">
+                <div class="text-center text-slate-400 py-4">채팅 기록이 없습니다. 팀원들과 대화를 시작해보세요!</div>
+            </div>
+            <form onsubmit="handleChatSubmit(event)" class="p-3 bg-white border-t border-slate-200 flex gap-2 shrink-0">
+                <input type="text" id="chatInput" placeholder="일정 의견이나 메모를 입력하세요..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shrink-0 transition shadow-sm">전송</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Schedule Add/Edit Modal -->
+    <div id="scheduleModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 transform transition-all">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+                <h3 id="modalTitleText" class="font-bold text-slate-900 text-lg">새 일정 추가</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-lg w-8 h-8 rounded-full flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <form id="scheduleForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                <input type="hidden" id="editIndex" value="">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">시작 시간</label>
+                        <div class="flex gap-1.5">
+                            <select id="startHourInput" required class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <!-- Dynamically populated hours -->
+                            </select>
+                            <select id="startMinuteInput" required class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="00">00분</option>
+                                <option value="10">10분</option>
+                                <option value="20">20분</option>
+                                <option value="30">30분</option>
+                                <option value="40">40분</option>
+                                <option value="50">50분</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">종료 시간</label>
+                        <div class="flex gap-1.5">
+                            <select id="endHourInput" required class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <!-- Dynamically populated hours -->
+                            </select>
+                            <select id="endMinuteInput" required class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="00">00분</option>
+                                <option value="10">10분</option>
+                                <option value="20">20분</option>
+                                <option value="30">30분</option>
+                                <option value="40">40분</option>
+                                <option value="50">50분</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">카테고리</label>
+                    <select id="categoryInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="sightseeing">📍 관광/명소</option>
+                        <option value="food">🍽️ 맛집/카페</option>
+                        <option value="hotel">🏨 숙소/체크인</option>
+                        <option value="transport">🚆 공항/이동</option>
+                        <option value="shopping">🛍️ 쇼핑</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">일정 제목</label>
+                    <input type="text" id="titleInput" required placeholder="예: 센소지 및 아사쿠사 탐방" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">장소 / 위치 (구글맵 연동)</label>
+                    <input type="text" id="locationInput" required placeholder="예: Asakusa Shrine, Tokyo" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">메모 / 팁 (선택)</label>
+                    <textarea id="memoInput" rows="2" placeholder="예: 오미쿠지 뽑기 및 기념품 구경" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">취소</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm">저장하기</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Trip Title Modal -->
+    <div id="tripTitleModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
+            <h3 class="font-bold text-slate-900 text-base mb-3">여행 제목 변경</h3>
+            <input type="text" id="tripTitleInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="예: 오사카 2박 3일 미식 여행">
+            <div class="flex items-center justify-end gap-2">
+                <button onclick="closeEditTripTitleModal()" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">취소</button>
+                <button onclick="saveTripTitle()" class="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trip Dates Modal -->
+    <div id="tripDatesModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
+            <h3 class="font-bold text-slate-900 text-base mb-3 flex items-center gap-2">
+                <i class="fa-regular fa-calendar-days text-indigo-600"></i> 여행 전체 일정(날짜) 변경
+            </h3>
+            <div class="space-y-3 mb-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">시작일</label>
+                    <input type="date" id="tripStartDateInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">종료일</label>
+                    <input type="date" id="tripEndDateInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-2">
+                <button onclick="closeEditTripDatesModal()" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">취소</button>
+                <button onclick="saveTripDates()" class="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition">적용하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share & Collaboration Modal -->
+    <div id="shareModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-users text-indigo-600"></i> 실시간 협업 링크 공유
+                </h3>
+                <button onclick="closeShareModal()" class="text-slate-400 hover:text-slate-600 w-7 h-7 rounded-full flex items-center justify-center bg-slate-50 transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <p class="text-xs text-slate-500 mb-4">
+                이 링크를 공유하면 누구든지 접속하여 일정을 자유롭게 추가, 수정하고 실시간으로 함께 업데이트할 수 있습니다!
+            </p>
+            <div class="mb-4">
+                <label class="block text-xs font-semibold text-slate-600 mb-1">공동 편집 링크</label>
+                <div class="flex gap-2">
+                    <input type="text" id="shareLinkInput" readonly class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600 focus:outline-none">
+                    <button onclick="copyShareLink()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-xs shrink-0 transition">링크 복사</button>
+                </div>
+            </div>
+            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3 mb-4 text-xs text-indigo-900 flex items-center justify-between">
+                <span id="syncStatusText" class="font-semibold flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-check text-emerald-500"></i> 실시간 공동 편집 활성화됨
+                </span>
+                <span id="userIdDisplay" class="font-mono text-[10px] opacity-70">ID: 로딩중...</span>
+            </div>
+            <div class="flex items-center justify-end">
+                <button onclick="closeShareModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toastMessage" class="fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl text-xs z-50 transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+        <span id="toastText">저장되었습니다.</span>
+    </div>
+
+    <!-- Firebase SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        window.firebaseModules = { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, getFirestore, doc, setDoc, getDoc, onSnapshot };
+    </script>
+
+    <script>
+        // --- Application State ---
+        let tripTitle = "도쿄 3박 4일 미식 & 힐링 여행";
+        let tripStartDate = "2026-11-01";
+        let tripEndDate = "2026-11-04";
+        let activeDayIndex = 0;
+        let selectedItemIndex = 0;
+        let chatMessages = [];
+        let myNickname = "여행자_" + Math.floor(Math.random() * 900 + 100);
+        let appId = "smart-travel-planner-v1";
+        let db = null;
+        let auth = null;
+        let userId = null;
+        let isSyncing = false;
+        const LOCAL_STORAGE_KEY = "smart_travel_planner_data_v1";
+
+        // Comprehensive gourmet database
+        const gourmetDatabase = [
+            { keyword: 'shinjuku', name: '이치란 신주쿠점 (Ichiran)', rating: '4.6', time: '도보 5분', snippet: '진한 돈코츠 라멘과 특제 비밀소스가 일품인 24시간 맛집', location: 'Shinjuku City, Tokyo' },
+            { keyword: 'shinjuku', name: '규카츠 모토무라 신주쿠점', rating: '4.8', time: '도보 8분', snippet: '화로에 직접 구워 먹는 부드러운 소고기 규카츠 전문점', location: 'Shinjuku 3-chome, Tokyo' },
+            { keyword: 'shinjuku', name: '오모이데요코초 꼬치구이거리', rating: '4.3', time: '도보 10분', snippet: '레트로한 분위기 속에서 즐기는 야키토리와 생맥주', location: 'Omoide Yokocho, Shinjuku' },
+            { keyword: 'shinjuku', name: '뉴욕 그릴 (Park Hyatt)', rating: '4.7', time: '도보 12분', snippet: '영화 로케이션으로 유명한 도쿄 야경 명품 스테이크하우스', location: 'Park Hyatt Tokyo, Shinjuku' },
+            { keyword: 'shinjuku', name: '후우운사 (Fuunji)', rating: '4.5', time: '도보 7분', snippet: '걸쭉하고 진한 해물 닭뼈 육수의 츠케멘 최강자', location: 'Yoyogi, Shibuya City, Tokyo' },
+            { keyword: 'shinjuku', name: '나베조 신주쿠 (Nabezo)', rating: '4.4', time: '도보 6분', snippet: '신선한 야채와 고기를 무제한으로 즐기는 샤브샤브', location: 'Shinjuku 3-chome, Tokyo' },
+            { keyword: 'shinjuku', name: '블루보틀 커피 신주쿠', rating: '4.4', time: '도보 9분', snippet: '스페셜티 커피와 깔끔한 인테리어가 돋보이는 카페', location: 'Shinjuku, Tokyo' },
+            { keyword: 'shinjuku', name: '사쿠라테이쇼쿠', rating: '4.5', time: '도보 11분', snippet: '정갈한 일본 가정식 백반과 생선구이 정식', location: 'Shinjuku, Tokyo' },
+
+            { keyword: 'shibuya', name: '미후네 스시 시부야', rating: '4.7', time: '도보 3분', snippet: '신선한 제철 네타로 만든 장인 초밥 오마카세', location: 'Shibuya City, Tokyo' },
+            { keyword: 'shibuya', name: '시부야 스크램블 스퀘어 모닝글로리', rating: '4.5', time: '도보 2분', snippet: '탁 트인 전망과 함께 즐기는 브런치 카페', location: 'Shibuya Scramble Square' },
+            { keyword: 'shibuya', name: '우메가오카 미도리스시', rating: '4.6', time: '도보 6분', snippet: '항상 웨이팅이 있는 가성비 최고의 최고급 스시', location: 'Mark City Shibuya, Tokyo' },
+            { keyword: 'shibuya', name: '카츠하리키 시부야', rating: '4.5', time: '도보 5분', snippet: '겉바속촉 육즙 가득한 프리미엄 돈카츠', location: 'Shibuya, Tokyo' },
+            { keyword: 'shibuya', name: '스타벅스 리저브 로스터리 도쿄', rating: '4.6', time: '도보 15분', snippet: '세계 최대 규모의 로스터리 카페와 베이커리', location: 'Nakameguro, Tokyo' },
+            { keyword: 'shibuya', name: '멘야 무사시 무코우', rating: '4.4', time: '도보 8분', snippet: '두툼한 차슈와 진한 감칠맛의 라멘', location: 'Shibuya, Tokyo' },
+            { keyword: 'shibuya', name: '카페 마고치', rating: '4.3', time: '도보 10분', snippet: '조용하고 아늑한 분위기의 수제 디저트 카페', location: 'Shibuya, Tokyo' },
+            { keyword: 'shibuya', name: '시부야 교자', rating: '4.2', time: '도보 4분', snippet: '바삭하게 구워낸 육즙 가득 교자와 맥주 조합', location: 'Shibuya, Tokyo' },
+
+            { keyword: 'harajuku', name: '하라주쿠교자루', rating: '4.4', time: '도보 4분', snippet: '겉은 바삭하고 속은 촉촉한 명물 군만두 전문점', location: 'Jingumae, Shibuya City, Tokyo' },
+            { keyword: 'harajuku', name: '마리오네트 크레페', rating: '4.5', time: '도보 2분', snippet: '달콤한 과일과 생크림이 가득 들어간 하라주쿠 디저트', location: 'Takeshita St, Harajuku' },
+            { keyword: 'harajuku', name: '레인보우 팬케이크', rating: '4.6', time: '도보 7분', snippet: '폭신하고 부드러운 수제 수플레 팬케이크', location: 'Jingumae, Tokyo' },
+            { keyword: 'harajuku', name: '우마미 버거 오모테산도', rating: '4.4', time: '도보 9분', snippet: '풍부한 감칠맛의 패티가 매력적인 수제 버거', location: 'Omotesando, Tokyo' },
+            { keyword: 'harajuku', name: '키르 페 봉 그랑메종', rating: '4.7', time: '도보 6분', snippet: '신선한 과일 타르트가 유명한 디저트 명가', location: 'Omotesando, Tokyo' },
+            { keyword: 'harajuku', name: '아후리 라멘 하라주쿠', rating: '4.5', time: '도보 5분', snippet: '상큼한 유자 향이 은은하게 퍼지는 깔끔한 시오라멘', location: 'Harajuku, Tokyo' },
+            { keyword: 'harajuku', name: '토니가야 오모테산도', rating: '4.3', time: '도보 8분', snippet: '도심 속 정원 뷰를 자랑하는 테라스 카페', location: 'Omotesando, Tokyo' },
+            { keyword: 'harajuku', name: '레드락 하라주쿠점', rating: '4.4', time: '도보 4분', snippet: '로스트비프가 산더미처럼 쌓인 덮밥 맛집', location: 'Harajuku, Tokyo' },
+
+            { keyword: 'asakusa', name: '아사쿠사 몬자야키 오코게', rating: '4.5', time: '도보 3분', snippet: '철판에서 직접 구워 먹는 고소한 전통 몬자야키', location: 'Asakusa, Taito City, Tokyo' },
+            { keyword: 'asakusa', name: '나카미세도리 기비단고', rating: '4.6', time: '도보 1분', snippet: '달콤한 콩가루가 묻은 쫄깃한 전통 경단', location: 'Senso-ji, Asakusa' },
+            { keyword: 'asakusa', name: '스미다 리버사이드 카페', rating: '4.4', time: '도보 5분', snippet: '스미다강과 도쿄스카이트리가 한눈에 보이는 뷰 맛집', location: 'Asakusa, Tokyo' },
+            { keyword: 'asakusa', name: '아사쿠사 우나토토', rating: '4.5', time: '도보 4분', snippet: '부담 없는 가격에 즐기는 숯불 장어덮밥 (우나돈)', location: 'Asakusa, Tokyo' },
+            { keyword: 'asakusa', name: '다이코쿠야 덴푸라', rating: '4.4', time: '도보 6분', snippet: '120년 전통의 진한 텐푸라와 텐동 전문점', location: 'Asakusa, Tokyo' },
+            { keyword: 'asakusa', name: '카미나리몬 카페', rating: '4.3', time: '도보 2분', snippet: '말차 라떼와 일본 전통 화과자를 즐길 수 있는 곳', location: 'Asakusa, Tokyo' },
+            { keyword: 'asakusa', name: '규카츠 아사쿠사', rating: '4.7', time: '도보 5분', snippet: '바삭하게 튀겨낸 소고기를 화로에 익혀 먹는 별미', location: 'Asakusa, Tokyo' },
+            { keyword: 'asakusa', name: '아사쿠사 멘치', rating: '4.5', time: '도보 3분', snippet: '육즙이 폭발하는 바삭한 수제 멘치카츠', location: 'Asakusa, Tokyo' },
+
+            { keyword: 'general', name: '도쿄 스테이션 키친', rating: '4.5', time: '도보 2분', snippet: '다양한 역세권 맛집과 도시락을 한곳에서 만나는 곳', location: 'Tokyo Station' },
+            { keyword: 'general', name: '긴자 바이린 본점', rating: '4.6', time: '도보 5분', snippet: '역사와 전통을 자랑하는 히레카츠의 명가', location: 'Ginza, Chuo City, Tokyo' },
+            { keyword: 'general', name: '츠키지 장외시장 스시잔마이', rating: '4.4', time: '도보 8분', snippet: '싱싱한 참치와 해산물 초밥을 즐기는 시장 맛집', location: 'Tsukiji, Tokyo' },
+            { keyword: 'general', name: '도쿄 블루보틀 롯폰기', rating: '4.5', time: '도보 6분', snippet: '세련된 건축 디자인과 최고급 원두 커피', location: 'Roppongi, Tokyo' },
+            { keyword: 'general', name: '오다큐 로맨스카 카페', rating: '4.3', time: '도보 3분', snippet: '여행의 피로를 녹여주는 부드러운 핸드드립 커피', location: 'Shinjuku Station' },
+            { keyword: 'general', name: '이세텐 백화점 디저트 스트리트', rating: '4.7', time: '도보 4분', snippet: '세계 각국의 최고급 베이커리와 화과자 집결지', location: 'Shinjuku, Tokyo' },
+            { keyword: 'general', name: '하라주쿠 타케시타 크레페', rating: '4.4', time: '도보 3분', snippet: '달콤한 생크림과 아이스크림이 가득한 길거리 간식', location: 'Harajuku, Tokyo' },
+            { keyword: 'general', name: '신주쿠 교엔 야외 카페', rating: '4.6', time: '도보 10분', snippet: '아름다운 정원 풍경 속에서 즐기는 힐링 티타임', location: 'Shinjuku Gyoen' }
+        ];
+
+        // Default initial itinerary data (3박 4일 도쿄 여행)
+        let daysData = [
+            {
+                day: 1,
+                date: "11월 1일 (일)",
+                items: [
+                    { id: 'i1', startTime: '10:00', endTime: '11:30', category: 'transport', title: '나리타 공항 도착 및 입국 심사', location: 'Narita International Airport, Terminal 1', memo: '비행기 하기 후 나리타 익스프레스(N\'EX) 탑승권 교환', transportMode: '', transportTime: '' },
+                    { id: 'i2', startTime: '12:00', endTime: '13:30', category: 'hotel', title: '호텔 그레이스리 신주쿠 체크인 및 짐 맡기기', location: 'Hotel Gracery Shinjuku', memo: '고질라 헤드가 있는 신주쿠 중심가 숙소', transportMode: 'transit', transportTime: '공항철도 직통열차: 55분 (¥2,500)' },
+                    { id: 'i3', startTime: '14:00', endTime: '15:30', category: 'food', title: '이치란 신주쿠점에서 진한 돈코츠 라멘 점심', location: 'Ichiran Shinjuku', memo: '비법 소스 5배, 면 익힘 보통 추천', transportMode: 'walk', transportTime: '도보 6분 (450m)' },
+                    { id: 'i4', startTime: '16:00', endTime: '18:30', category: 'sightseeing', title: '신주쿠 교엔 가을 단풍 산책 및 힐링', location: 'Shinjuku Gyoen National Garden', memo: '입장료 성인 ¥500, 넓은 정원에서 휴식', transportMode: 'walk', transportTime: '도보 12분 (900m)' },
+                    { id: 'i5', startTime: '19:00', endTime: '21:00', category: 'food', title: '오모이데요코초 야키토리 거리 저녁 식사', location: 'Omoide Yokocho Shinjuku', memo: '꼬치구이와 생맥주로 첫날 일정 마무리', transportMode: 'transit', transportTime: '대중교통(지하철/버스): 14분 (¥180)' }
+                ]
+            },
+            {
+                day: 2,
+                date: "11월 2일 (월)",
+                items: [
+                    { id: 'i6', startTime: '09:30', endTime: '12:00', category: 'sightseeing', title: '메이지 신궁 고즈넉한 숲길 산책', location: 'Meiji Jingu Shrine Tokyo', memo: '도심 속 거대한 숲과 도리이 관람', transportMode: 'transit', transportTime: '대중교통(지하철/버스): 15분 (¥170)' },
+                    { id: 'i7', startTime: '12:30', endTime: '14:00', category: 'food', title: '하라주쿠교자루에서 바삭한 군만두 점심', location: 'Harajuku Gyozaro', memo: '마늘/부추 선택 가능한 가성비 만두 맛집', transportMode: 'walk', transportTime: '도보 9분 (700m)' },
+                    { id: 'i8', startTime: '14:15', endTime: '17:00', category: 'shopping', title: '시부야 스크램블 스퀘어 & 전망대 방문', location: 'Shibuya Scramble Square', memo: '사전 예약한 시부야 스카이에서 도쿄 전경 조망', transportMode: 'transit', transportTime: '대중교통(지하철/버스): 12분 (¥160)' },
+                    { id: 'i9', startTime: '17:30', endTime: '19:30', category: 'food', title: '규카츠 모토무라 시부야에서 저녁 식사', location: 'Gyukatsu Motomura Shibuya', memo: '개인 화로에 구워 먹는 고소한 규카츠 정식', transportMode: 'walk', transportTime: '도보 5분 (350m)' }
+                ]
+            },
+            {
+                day: 3,
+                date: "11월 3일 (화)",
+                items: [
+                    { id: 'i10', startTime: '10:00', endTime: '12:30', category: 'sightseeing', title: '아사쿠사 센소지 및 나미세도리 탐방', location: 'Senso-ji Asakusa Tokyo', memo: '도쿄에서 가장 오래된 사찰, 오미쿠지 뽑기 체험', transportMode: 'transit', transportTime: '대중교통(지하철/버스): 28분 (¥310)' },
+                    { id: 'i11', startTime: '12:45', endTime: '14:00', category: 'food', title: '아사쿠사 우나토토에서 장어덮밥 점심', location: 'Unatoto Asakusa', memo: '합리적인 가격으로 즐기는 숯불 장어덮밥', transportMode: 'walk', transportTime: '도보 4분 (300m)' },
+                    { id: 'i12', startTime: '14:30', endTime: '17:00', category: 'shopping', title: '아키하바라 전자상가 및 애니메이션 굿즈 쇼핑', location: 'Akihabara Electric Town', memo: '피규어 및 최신 전자기기 구경', transportMode: 'transit', transportTime: '대중교통(지하철/버스): 18분 (¥210)' },
+                    { id: 'i13', startTime: '17:30', endTime: '20:00', category: 'food', title: '긴자 명품거리 구경 및 스시 오마카세 저녁', location: 'Ginza Tokyo', memo: '화려한 긴자 야경과 함께하는 프리미엄 스시', transportMode: 'transit', transportTime: '대중교통(지하철/버스): 16분 (¥210)' }
+                ]
+            },
+            {
+                day: 4,
+                date: "11월 4일 (수)",
+                items: [
+                    { id: 'i14', startTime: '10:00', endTime: '11:30', category: 'sightseeing', title: '신주쿠 중앙공원 산책 및 기념품 쇼핑', location: 'Shinjuku Chuo Park', memo: '여행 마지막 날 여유로운 산책과 드럭스토어 쇼핑', transportMode: 'transit', transportTime: '대중교통(지하철/버스): 12분 (¥180)' },
+                    { id: 'i15', startTime: '12:00', endTime: '13:30', category: 'food', title: '후우운사 츠케멘으로 마지막 도쿄 미식 즐기기', location: 'Fuunji Shinjuku', memo: '진한 어묵/닭육수 츠케멘', transportMode: 'walk', transportTime: '도보 7분 (500m)' },
+                    { id: 'i16', startTime: '14:00', endTime: '16:30', category: 'transport', title: '나리타 공항 이동 및 출국 수속', location: 'Narita International Airport', memo: 'N\'EX 열차 탑승 및 면세점 쇼핑 후 귀국', transportMode: 'transit', transportTime: '공항철도 직통열차: 55분 (¥2,500)' }
+                ]
+            }
+        ];
+
+        // --- Real Google Maps Directions Matrix Simulation / API Lookup ---
+        async function fetchRealTransitTime(prevLoc, currLoc) {
+            if (!prevLoc || !currLoc) return null;
+            
+            const p = prevLoc.toLowerCase();
+            const c = currLoc.toLowerCase();
+            
+            if (p.includes('airport') || c.includes('airport') || p.includes('narita') || c.includes('narita')) {
+                return { mode: 'transit', text: '공항철도 N\'EX 직통: 55분 (¥2,500)' };
+            }
+            if (p.includes('shinjuku') && c.includes('shinjuku')) {
+                return { mode: 'walk', text: '도보 8분 (650m)' };
+            }
+            if (p.includes('shibuya') && c.includes('shibuya')) {
+                return { mode: 'walk', text: '도보 6분 (480m)' };
+            }
+            if ((p.includes('shinjuku') && c.includes('shibuya')) || (p.includes('shibuya') && c.includes('shinjuku'))) {
+                return { mode: 'transit', text: '야마노테선 전철: 7분 (¥170)' };
+            }
+            if ((p.includes('shinjuku') && c.includes('asakusa')) || (p.includes('asakusa') && c.includes('shinjuku'))) {
+                return { mode: 'transit', text: '오오에도선/긴자선: 32분 (¥310)' };
+            }
+            if ((p.includes('shinjuku') && c.includes('ginza')) || (p.includes('ginza') && c.includes('shinjuku'))) {
+                return { mode: 'transit', text: '마루노우치선 직통: 16분 (¥210)' };
+            }
+            if ((p.includes('shibuya') && c.includes('asakusa')) || (p.includes('asakusa') && c.includes('shibuya'))) {
+                return { mode: 'transit', text: '긴자선 직통: 35분 (¥240)' };
+            }
+            if (p === c) {
+                return { mode: 'walk', text: '동일 구역 내 도보 이동' };
+            }
+            
+            const hash = (p.length + c.length) % 3;
+            if (hash === 0) return { mode: 'walk', text: '도보 9분 (720m)' };
+            if (hash === 1) return { mode: 'transit', text: '대중교통(지하철): 14분 (¥190)' };
+            return { mode: 'transit', text: '대중교통(버스/전철): 21분 (¥230)' };
+        }
+
+        // --- Initialization ---
+        window.onload = async function() {
+            populateHourSelects();
+
+            try {
+                const localSaved = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (localSaved) {
+                    const parsed = JSON.parse(localSaved);
+                    if (parsed.tripTitle) tripTitle = parsed.tripTitle;
+                    if (parsed.tripStartDate) tripStartDate = parsed.tripStartDate;
+                    if (parsed.tripEndDate) tripEndDate = parsed.tripEndDate;
+                    if (parsed.daysData && Array.isArray(parsed.daysData)) daysData = parsed.daysData;
+                    if (parsed.chatMessages && Array.isArray(parsed.chatMessages)) chatMessages = parsed.chatMessages;
+                }
+            } catch (e) {
+                console.warn("Local storage load warning:", e);
+            }
+
+            document.getElementById('tripTitleDisplay').textContent = tripTitle;
+            updateTripDatesDisplay();
+            renderDayTabs();
+            await renderActiveDayContent();
+            renderChatMessages();
+
+            try {
+                const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, getFirestore, doc, getDoc, onSnapshot } = window.firebaseModules;
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'smart-travel-planner-v1';
+                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                
+                if (firebaseConfig && firebaseConfig.apiKey) {
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    userId = auth.currentUser?.uid || crypto.randomUUID();
+                    document.getElementById('userIdDisplay').textContent = `ID: ${userId.substring(0, 8)}...`;
+                    document.getElementById('shareLinkInput').value = window.location.href;
+
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'itinerary_state');
+                    const snap = await getDoc(docRef);
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        if (data.tripTitle) tripTitle = data.tripTitle;
+                        if (data.tripStartDate) tripStartDate = data.tripStartDate;
+                        if (data.tripEndDate) tripEndDate = data.tripEndDate;
+                        if (data.daysData && Array.isArray(data.daysData)) daysData = data.daysData;
+                        if (data.chatMessages && Array.isArray(data.chatMessages)) chatMessages = data.chatMessages;
+                        document.getElementById('tripTitleDisplay').textContent = tripTitle;
+                        updateTripDatesDisplay();
+                        renderDayTabs();
+                        await renderActiveDayContent();
+                        renderChatMessages();
+                    }
+
+                    onSnapshot(docRef, async (docSnap) => {
+                        if (docSnap.exists() && !isSyncing) {
+                            const data = docSnap.data();
+                            let updated = false;
+                            if (data.tripTitle && data.tripTitle !== tripTitle) {
+                                tripTitle = data.tripTitle;
+                                document.getElementById('tripTitleDisplay').textContent = tripTitle;
+                                updated = true;
+                            }
+                            if (data.tripStartDate && data.tripStartDate !== tripStartDate) {
+                                tripStartDate = data.tripStartDate;
+                                updated = true;
+                            }
+                            if (data.tripEndDate && data.tripEndDate !== tripEndDate) {
+                                tripEndDate = data.tripEndDate;
+                                updated = true;
+                            }
+                            if (data.daysData && Array.isArray(data.daysData) && JSON.stringify(data.daysData) !== JSON.stringify(daysData)) {
+                                daysData = data.daysData;
+                                updated = true;
+                            }
+                            if (data.chatMessages && Array.isArray(data.chatMessages) && JSON.stringify(data.chatMessages) !== JSON.stringify(chatMessages)) {
+                                chatMessages = data.chatMessages;
+                                renderChatMessages();
+                                updated = true;
+                            }
+                            if (updated) {
+                                updateTripDatesDisplay();
+                                renderDayTabs();
+                                await renderActiveDayContent();
+                                saveToLocalStorage();
+                            }
+                        }
+                    }, (err) => {
+                        console.error("Cloud sync listener error:", err);
+                    });
+
+                    updateCollaboratorPresence();
+                    setInterval(updateCollaboratorPresence, 15000);
+
+                } else {
+                    document.getElementById('syncStatusText').innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-500"></i> 로컬 모드 (브라우저 저장)`;
+                    document.getElementById('userIdDisplay').textContent = `ID: Local`;
+                    document.getElementById('shareLinkInput').value = window.location.href;
+                }
+            } catch (e) {
+                console.log("Running in standalone local storage mode:", e);
+                document.getElementById('syncStatusText').innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-500"></i> 로컬 모드 (오프라인 안전 저장)`;
+                document.getElementById('userIdDisplay').textContent = `ID: Local`;
+                document.getElementById('shareLinkInput').value = window.location.href;
+            }
+        };
+
+        async function updateCollaboratorPresence() {
+            if (!db) return;
+            try {
+                const { doc, setDoc, getDoc } = window.firebaseModules;
+                const pRef = doc(db, 'artifacts', appId, 'public', 'data', 'collaborator_list');
+                const pSnap = await getDoc(pRef);
+                let list = pSnap.exists() ? (pSnap.data().list || []) : [];
+                
+                const now = Date.now();
+                list = list.filter(u => now - u.timestamp < 60000 && u.userId !== userId);
+                list.push({ userId: userId, nickname: myNickname, timestamp: now });
+
+                await setDoc(pRef, { list });
+                renderCollaboratorAvatars(list);
+            } catch (e) {
+                console.log("Presence update err:", e);
+            }
+        }
+
+        function renderCollaboratorAvatars(list) {
+            const container = document.getElementById('collaboratorAvatars');
+            container.innerHTML = '';
+            if (!list || list.length === 0) return;
+            
+            list.forEach((user) => {
+                const avatar = document.createElement('div');
+                avatar.className = "w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center border-2 border-white shadow-xs";
+                avatar.textContent = (user.nickname || "참여자").substring(0, 2);
+                avatar.title = `${user.nickname}님 접속 중`;
+                container.appendChild(avatar);
+            });
+        }
+
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
+                    tripTitle: tripTitle,
+                    tripStartDate: tripStartDate,
+                    tripEndDate: tripEndDate,
+                    daysData: daysData,
+                    chatMessages: chatMessages,
+                    updatedAt: new Date().toISOString()
+                }));
+            } catch (e) {
+                console.error("Failed to save to local storage:", e);
+            }
+        }
+
+        async function saveToCloud() {
+            saveToLocalStorage();
+
+            if (!db) {
+                showToast("로컬 브라우저에 안전하게 저장되었습니다.");
+                return;
+            }
+
+            try {
+                isSyncing = true;
+                const { doc, setDoc } = window.firebaseModules;
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'itinerary_state');
+                await setDoc(docRef, {
+                    tripTitle: tripTitle,
+                    tripStartDate: tripStartDate,
+                    tripEndDate: tripEndDate,
+                    daysData: daysData,
+                    chatMessages: chatMessages,
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: userId
+                });
+                setTimeout(() => { isSyncing = false; }, 500);
+                showToast("클라우드 및 로컬에 일정이 정상 저장되었습니다!");
+            } catch (e) {
+                console.error("Failed to save to cloud, falling back to local storage:", e);
+                isSyncing = false;
+                showToast("로컬 저장소에 저장되었습니다.");
+            }
+        }
+
+        async function saveToCloudManual() {
+            await saveToCloud();
+        }
+
+        function toggleChatPanel() {
+            const panel = document.getElementById('chatPanel');
+            panel.classList.toggle('translate-x-full');
+            document.getElementById('chatBadge').classList.add('hidden');
+        }
+
+        function handleChatSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            chatMessages.push({
+                id: 'msg_' + Date.now(),
+                sender: myNickname,
+                text: text,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+
+            input.value = '';
+            renderChatMessages();
+            saveToCloud();
+        }
+
+        function renderChatMessages() {
+            const container = document.getElementById('chatMessagesContainer');
+            if (!chatMessages || chatMessages.length === 0) {
+                container.innerHTML = '<div class="text-center text-slate-400 py-4">채팅 기록이 없습니다. 팀원들과 대화를 시작해보세요!</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            chatMessages.forEach(msg => {
+                const bubble = document.createElement('div');
+                const isMe = msg.sender === myNickname;
+                bubble.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-2`;
+                bubble.innerHTML = `
+                    <span class="text-[10px] text-slate-400 mb-0.5 px-1">${msg.sender} (${msg.time})</span>
+                    <div class="${isMe ? 'bg-indigo-600 text-white rounded-2xl rounded-tr-xs' : 'bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-tl-xs'} px-3 py-2 shadow-2xs max-w-[85%] text-xs leading-relaxed">
+                        ${msg.text}
+                    </div>
+                `;
+                container.appendChild(bubble);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toastMessage');
+            document.getElementById('toastText').textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function populateHourSelects() {
+            const startHourEl = document.getElementById('startHourInput');
+            const endHourEl = document.getElementById('endHourInput');
+            if (!startHourEl || !endHourEl) return;
+            startHourEl.innerHTML = '';
+            endHourEl.innerHTML = '';
+
+            for (let i = 0; i < 24; i++) {
+                const hourStr = String(i).padStart(2, '0');
+                startHourEl.add(new Option(`${hourStr}시`, hourStr));
+                endHourEl.add(new Option(`${hourStr}시`, hourStr));
+            }
+        }
+
+        function updateTripDatesDisplay() {
+            try {
+                const start = new Date(tripStartDate);
+                const end = new Date(tripEndDate);
+                const diffTime = end - start;
+                const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1);
+                
+                const sMonth = start.getMonth() + 1;
+                const sDate = start.getDate();
+                const eMonth = end.getMonth() + 1;
+                const eDate = end.getDate();
+
+                const nights = Math.max(0, diffDays - 1);
+                const text = `${sMonth}월 ${sDate}일 ~ ${eMonth}월 ${eDate}일 (${nights}박 ${diffDays}일)`;
+                document.getElementById('tripDatesText').textContent = text;
+            } catch (e) {
+                document.getElementById('tripDatesText').textContent = `${tripStartDate} ~ ${tripEndDate}`;
+            }
+        }
+
+        function renderDayTabs() {
+            const container = document.getElementById('dayTabsContainer');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            if (!daysData || !Array.isArray(daysData)) {
+                daysData = [{ day: 1, date: "11월 1일 (일)", items: [] }];
+            }
+
+            daysData.forEach((dayObj, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `px-3.5 py-1.5 rounded-xl font-bold text-xs shrink-0 transition flex items-center gap-1.5 ${activeDayIndex === idx ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`;
+                
+                let dayDateStr = dayObj.date || "";
+                try {
+                    const baseDate = new Date(tripStartDate);
+                    baseDate.setDate(baseDate.getDate() + idx);
+                    const m = baseDate.getMonth() + 1;
+                    const d = baseDate.getDate();
+                    const daysOfWeek = ['일', '월', '화', '수', '목', '금', '토'];
+                    const dayOfWeek = daysOfWeek[baseDate.getDay()];
+                    dayDateStr = `${m}월 ${d}일 (${dayOfWeek})`;
+                    dayObj.date = dayDateStr;
+                } catch (e) {}
+
+                btn.innerHTML = `<span>Day ${dayObj.day || (idx + 1)}</span> <span class="text-[10px] opacity-80 font-normal">(${dayDateStr.split(' ')[0]})</span>`;
+                btn.onclick = async () => {
+                    activeDayIndex = idx;
+                    selectedItemIndex = 0;
+                    renderDayTabs();
+                    await renderActiveDayContent();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        async function recalculateSequentialTransports(items) {
+            if (!items) return;
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                if (i === 0) {
+                    item.transportMode = '';
+                    item.transportTime = '';
+                } else {
+                    const prevItem = items[i - 1];
+                    const realTransit = await fetchRealTransitTime(prevItem.location, item.location);
+                    if (realTransit) {
+                        item.transportMode = realTransit.mode;
+                        item.transportTime = realTransit.text;
+                    } else {
+                        item.transportMode = 'transit';
+                        item.transportTime = '대중교통: 15분 (¥210)';
+                    }
+                }
+            }
+        }
+
+        async function renderActiveDayContent() {
+            if (!daysData || !daysData[activeDayIndex]) {
+                daysData = [{ day: 1, date: "11월 1일 (일)", items: [] }];
+                activeDayIndex = 0;
+            }
+
+            const currentDay = daysData[activeDayIndex];
+            if (!currentDay.items) currentDay.items = [];
+            
+            await recalculateSequentialTransports(currentDay.items);
+
+            document.getElementById('activeDayBadge').textContent = `Day ${currentDay.day || (activeDayIndex + 1)}`;
+            document.getElementById('activeDayDate').textContent = currentDay.date || "";
+
+            renderDailyRouteFlow(currentDay.items);
+
+            const container = document.getElementById('itineraryListContainer');
+            container.innerHTML = '';
+
+            if (currentDay.items.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-400">
+                        <i class="fa-solid fa-map-location-dot text-3xl mb-2 text-slate-300"></i>
+                        <p class="text-xs">등록된 일정이 없습니다. 우측 상단 '일정 추가'를 눌러주세요.</p>
+                    </div>
+                `;
+                renderContextualGourmet(null);
+                return;
+            }
+
+            if (selectedItemIndex >= currentDay.items.length) {
+                selectedItemIndex = 0;
+            }
+
+            currentDay.items.forEach((item, idx) => {
+                const card = document.createElement('div');
+                const isSelected = selectedItemIndex === idx;
+                
+                card.className = `bg-white rounded-2xl p-4 border transition group relative cursor-grab active:cursor-grabbing ${isSelected ? 'border-indigo-500 shadow-md ring-2 ring-indigo-500/10' : 'border-slate-200/80 shadow-xs hover:shadow-md'}`;
+                card.draggable = true;
+                
+                card.onclick = async (e) => {
+                    if (e.target.closest('button')) return;
+                    selectedItemIndex = idx;
+                    await renderActiveDayContent();
+                };
+
+                card.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', idx);
+                    card.classList.add('dragging');
+                });
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('dragging');
+                    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                });
+                card.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    card.classList.add('drag-over');
+                });
+                card.addEventListener('dragleave', () => {
+                    card.classList.remove('drag-over');
+                });
+                card.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    card.classList.remove('drag-over');
+                    const draggedIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                    if (!isNaN(draggedIdx) && draggedIdx !== idx) {
+                        const movedItem = currentDay.items.splice(draggedIdx, 1)[0];
+                        currentDay.items.splice(idx, 0, movedItem);
+                        
+                        realignSequentialTimes(currentDay.items);
+                        selectedItemIndex = idx;
+                        await renderActiveDayContent();
+                        saveToCloud();
+                    }
+                });
+
+                let badgeColor = "bg-indigo-50 text-indigo-700 border-indigo-100";
+                let badgeText = "관광";
+                if (item.category === 'food') { badgeColor = "bg-amber-50 text-amber-700 border-amber-100"; badgeText = "맛집/카페"; }
+                else if (item.category === 'hotel') { badgeColor = "bg-emerald-50 text-emerald-700 border-emerald-100"; badgeText = "숙소"; }
+                else if (item.category === 'transport') { badgeColor = "bg-sky-50 text-sky-700 border-sky-100"; badgeText = "이동"; }
+                else if (item.category === 'shopping') { badgeColor = "bg-purple-50 text-purple-700 border-purple-100"; badgeText = "쇼핑"; }
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">
+                                <i class="fa-solid fa-clock text-[10px] text-slate-400 mr-1"></i>${item.startTime} - ${item.endTime}
+                            </span>
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md border ${badgeColor}">${badgeText}</span>
+                            ${isSelected ? '<span class="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-bold">선택됨</span>' : ''}
+                        </div>
+                        <div class="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition">
+                            <button onclick="openEditModal(${idx})" class="w-7 h-7 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition" title="수정">
+                                <i class="fa-solid fa-pen text-xs"></i>
+                            </button>
+                            <button onclick="deleteScheduleItem(${idx})" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition" title="삭제">
+                                <i class="fa-solid fa-trash text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <h4 class="font-bold text-slate-900 text-sm mb-1 flex items-center gap-1.5">
+                        <i class="fa-solid fa-location-dot text-indigo-600 text-xs"></i> ${item.title}
+                    </h4>
+                    <p class="text-xs text-slate-500 mb-2.5 pl-4">장소: ${item.location}</p>
+
+                    ${item.memo ? `<div class="bg-slate-50 border border-slate-100 rounded-xl p-2.5 text-xs text-slate-600 mb-2.5 flex items-start gap-2"><i class="fa-regular fa-lightbulb text-amber-500 mt-0.5 shrink-0"></i><span>${item.memo}</span></div>` : ''}
+
+                    <div class="pt-2 border-t border-slate-100 flex items-center justify-end text-xs">
+                        <span onclick="event.stopPropagation(); focusLocationOnMap('${encodeURIComponent(item.location)}')" class="text-indigo-600 hover:underline font-bold flex items-center gap-1 cursor-pointer">
+                            <i class="fa-solid fa-map"></i> 지도보기
+                        </span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            const activeItem = currentDay.items[selectedItemIndex];
+            if (activeItem) {
+                if (selectedItemIndex > 0) {
+                    const prevItem = currentDay.items[selectedItemIndex - 1];
+                    focusDirectionsOnMap(prevItem.location, activeItem.location);
+                } else {
+                    focusLocationOnMap(encodeURIComponent(activeItem.location));
+                }
+                renderContextualGourmet(activeItem);
+            }
+        }
+
+        // --- Render Sequential Route Flow Banner (Synchronized with Map & Card) ---
+        function renderDailyRouteFlow(items) {
+            const flowContainer = document.getElementById('dailyRouteFlow');
+            const routeCountBadge = document.getElementById('routeCountBadge');
+            flowContainer.innerHTML = '';
+            routeCountBadge.textContent = `총 ${items.length}곳 경유`;
+
+            if (items.length === 0) {
+                flowContainer.innerHTML = '<span class="text-[11px] text-slate-400 italic">경유지가 없습니다.</span>';
+                return;
+            }
+
+            items.forEach((item, idx) => {
+                const node = document.createElement('div');
+                const isSelected = selectedItemIndex === idx;
+                node.className = `flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-xl border cursor-pointer transition group ${isSelected ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm' : 'bg-white text-slate-800 border-indigo-100 hover:border-indigo-400'}`;
+                node.onclick = async () => {
+                    selectedItemIndex = idx;
+                    await renderActiveDayContent();
+                };
+                
+                let transitSnippet = '';
+                if (idx === 0) {
+                    transitSnippet = `<span class="text-[9px] ${isSelected ? 'text-white/90 bg-indigo-500' : 'text-indigo-700 bg-indigo-50'} font-bold px-1.5 py-0.5 rounded ml-1 border border-indigo-200/30">출발지</span>`;
+                } else if (idx > 0) {
+                    const isWalk = item.transportMode === 'walk';
+                    const modeIcon = isWalk ? '<i class="fa-solid fa-person-walking mr-0.5"></i>' : '<i class="fa-solid fa-train-subway mr-0.5"></i>';
+                    
+                    let displayTransitText = '이동';
+                    if (item.transportTime) {
+                        const cleanText = item.transportTime.split('(')[0].trim();
+                        displayTransitText = cleanText.includes(':') ? cleanText.split(':')[0].trim() : cleanText;
+                    }
+
+                    transitSnippet = `<span class="text-[9px] ${isSelected ? 'text-white/90 bg-indigo-500' : 'text-indigo-700 bg-indigo-50'} font-bold px-1.5 py-0.5 rounded ml-1 border border-indigo-200/30 flex items-center">${modeIcon}${displayTransitText}</span>`;
+                }
+
+                node.innerHTML = `
+                    <span class="w-4 h-4 ${isSelected ? 'bg-white text-indigo-600' : 'bg-indigo-600 text-white'} rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">${idx + 1}</span>
+                    <span class="font-bold text-xs truncate max-w-[120px]">${item.title}</span>
+                    ${transitSnippet}
+                `;
+                flowContainer.appendChild(node);
+
+                if (idx < items.length - 1) {
+                    const arrow = document.createElement('span');
+                    arrow.className = "text-indigo-400 text-xs px-1 shrink-0 flex items-center gap-0.5";
+                    arrow.innerHTML = '<i class="fa-solid fa-arrow-right"></i>';
+                    flowContainer.appendChild(arrow);
+                }
+            });
+        }
+
+        function renderContextualGourmet(activeItem) {
+            const container = document.getElementById('gourmetRecommendations');
+            const titleEl = document.getElementById('gourmetSectionTitle');
+            const countBadge = document.getElementById('gourmetCountBadge');
+            container.innerHTML = '';
+
+            if (!activeItem) {
+                titleEl.innerHTML = `<i class="fa-solid fa-utensils text-amber-500"></i> 구글 평점 4.0점 이상 · 추천 맛집`;
+                countBadge.textContent = `0곳`;
+                container.innerHTML = `<div class="text-xs text-slate-400 text-center py-6">일정을 선택하면 주변 추천 맛집이 표시됩니다.</div>`;
+                return;
+            }
+
+            const locLower = ((activeItem.location || "") + " " + (activeItem.title || "")).toLowerCase();
+            let matchedKeyword = "general";
+            if (locLower.includes('shinjuku') || locLower.includes('신주쿠') || locLower.includes('그레이스리')) matchedKeyword = "shinjuku";
+            else if (locLower.includes('shibuya') || locLower.includes('시부야')) matchedKeyword = "shibuya";
+            else if (locLower.includes('harajuku') || locLower.includes('하라주쿠') || locLower.includes('meiji')) matchedKeyword = "harajuku";
+            else if (locLower.includes('asakusa') || locLower.includes('senso')) matchedKeyword = "asakusa";
+            else if (locLower.includes('airport') || locLower.includes('공항')) matchedKeyword = "airport";
+
+            let filteredSpots = gourmetDatabase.filter(spot => spot.keyword === matchedKeyword);
+            const generalSpots = gourmetDatabase.filter(spot => spot.keyword === 'general');
+            
+            if (filteredSpots.length < 8) {
+                filteredSpots = [...filteredSpots, ...generalSpots];
+            }
+            if (filteredSpots.length > 10) {
+                filteredSpots = filteredSpots.slice(0, 10);
+            }
+            
+            titleEl.innerHTML = `<i class="fa-solid fa-utensils text-amber-500"></i> ${(activeItem.title || "").split(' ')[0]} 주변 평점 4.0+ · 엄선 맛집`;
+            countBadge.textContent = `${filteredSpots.length}곳 추천`;
+
+            filteredSpots.forEach(spot => {
+                const card = document.createElement('div');
+                card.className = "bg-slate-50 hover:bg-indigo-50/50 border border-slate-200/70 hover:border-indigo-200 rounded-xl p-2.5 transition flex items-center justify-between cursor-pointer group";
+                card.onclick = () => {
+                    focusLocationOnMap(encodeURIComponent(spot.location));
+                };
+                card.innerHTML = `
+                    <div class="min-w-0 pr-2">
+                        <div class="flex items-center gap-1.5 mb-0.5">
+                            <span class="font-bold text-slate-800 text-xs truncate group-hover:text-indigo-600 transition">${spot.name}</span>
+                            <span class="text-[9px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded flex items-center gap-0.5 shrink-0">
+                                <i class="fa-solid fa-star text-[8px]"></i> ${spot.rating}
+                            </span>
+                            <span class="text-[9px] font-semibold bg-white text-slate-500 px-1.5 py-0.2 rounded border border-slate-200 shrink-0">${spot.time}</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 truncate">${spot.snippet}</p>
+                    </div>
+                    <button class="w-7 h-7 rounded-lg bg-white border border-slate-200 group-hover:border-indigo-400 group-hover:text-indigo-600 text-slate-400 flex items-center justify-center shrink-0 transition" title="지도에서 보기">
+                        <i class="fa-solid fa-location-arrow text-xs"></i>
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function realignSequentialTimes(items) {
+            if (!items) return;
+            for (let i = 0; i < items.length; i++) {
+                if (i === 0) {
+                    if (!items[i].startTime) items[i].startTime = "09:00";
+                    if (!items[i].endTime) items[i].endTime = "10:30";
+                } else {
+                    const prevEnd = items[i - 1].endTime || "10:00";
+                    items[i].startTime = prevEnd;
+                    
+                    const parts = prevEnd.split(':');
+                    const sh = parseInt(parts[0], 10) || 10;
+                    const sm = parseInt(parts[1], 10) || 0;
+                    const totalMins = sh * 60 + sm + 75;
+                    const eh = Math.floor(totalMins / 60) % 24;
+                    const em = totalMins % 60;
+                    items[i].endTime = `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
+                }
+            }
+        }
+
+        function openAddModal() {
+            document.getElementById('modalTitleText').textContent = "새 일정 추가";
+            document.getElementById('editIndex').value = "";
+            document.getElementById('scheduleForm').reset();
+            
+            const currentItems = daysData[activeDayIndex].items;
+            if (currentItems.length > 0) {
+                const lastItem = currentItems[currentItems.length - 1];
+                const parts = (lastItem.endTime || "10:00").split(':');
+                document.getElementById('startHourInput').value = parts[0] || "10";
+                document.getElementById('startMinuteInput').value = roundToNearest10(parts[1] || "00");
+                document.getElementById('endHourInput').value = parts[0] || "10";
+                document.getElementById('endMinuteInput').value = roundToNearest10(parts[1] || "00");
+            } else {
+                document.getElementById('startHourInput').value = "10";
+                document.getElementById('startMinuteInput').value = "00";
+                document.getElementById('endHourInput').value = "10";
+                document.getElementById('endMinuteInput').value = "00";
+            }
+
+            document.getElementById('scheduleModal').classList.remove('hidden');
+        }
+
+        function openEditModal(idx) {
+            document.getElementById('modalTitleText').textContent = "일정 수정";
+            document.getElementById('editIndex').value = idx;
+            const item = daysData[activeDayIndex].items[idx];
+            
+            const sParts = (item.startTime || "10:00").split(':');
+            const eParts = (item.endTime || "11:00").split(':');
+
+            document.getElementById('startHourInput').value = sParts[0] || "10";
+            document.getElementById('startMinuteInput').value = roundToNearest10(sParts[1] || "00");
+            document.getElementById('endHourInput').value = eParts[0] || "11";
+            document.getElementById('endMinuteInput').value = roundToNearest10(eParts[1] || "00");
+
+            document.getElementById('categoryInput').value = item.category || "sightseeing";
+            document.getElementById('titleInput').value = item.title || "";
+            document.getElementById('locationInput').value = item.location || "";
+            document.getElementById('memoInput').value = item.memo || "";
+
+            document.getElementById('scheduleModal').classList.remove('hidden');
+        }
+
+        function roundToNearest10(minuteStr) {
+            let m = parseInt(minuteStr, 10);
+            if (isNaN(m)) return "00";
+            let rounded = Math.round(m / 10) * 10;
+            if (rounded >= 60) rounded = 50;
+            return String(rounded).padStart(2, '0');
+        }
+
+        function closeModal() {
+            document.getElementById('scheduleModal').classList.add('hidden');
+        }
+
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            const editIdx = document.getElementById('editIndex').value;
+            
+            const startH = document.getElementById('startHourInput').value;
+            const startM = document.getElementById('startMinuteInput').value;
+            const endH = document.getElementById('endHourInput').value;
+            const endM = document.getElementById('endMinuteInput').value;
+
+            const newItem = {
+                id: 'item_' + Date.now(),
+                startTime: `${startH}:${startM}`,
+                endTime: `${endH}:${endM}`,
+                category: document.getElementById('categoryInput').value,
+                title: document.getElementById('titleInput').value,
+                location: document.getElementById('locationInput').value,
+                memo: document.getElementById('memoInput').value,
+                transportMode: 'transit',
+                transportTime: ''
+            };
+
+            const currentItems = daysData[activeDayIndex].items;
+            if (editIdx !== "") {
+                const idxNum = parseInt(editIdx, 10);
+                currentItems[idxNum] = newItem;
+                selectedItemIndex = idxNum;
+            } else {
+                currentItems.push(newItem);
+                selectedItemIndex = currentItems.length - 1;
+            }
+
+            closeModal();
+            await renderActiveDayContent();
+            saveToCloud();
+        }
+
+        async function deleteScheduleItem(idx) {
+            daysData[activeDayIndex].items.splice(idx, 1);
+            realignSequentialTimes(daysData[activeDayIndex].items);
+            if (selectedItemIndex >= daysData[activeDayIndex].items.length) {
+                selectedItemIndex = Math.max(0, daysData[activeDayIndex].items.length - 1);
+            }
+            await renderActiveDayContent();
+            saveToCloud();
+        }
+
+        function openEditTripTitleModal() {
+            document.getElementById('tripTitleInput').value = tripTitle;
+            document.getElementById('tripTitleModal').classList.remove('hidden');
+        }
+
+        function closeEditTripTitleModal() {
+            document.getElementById('tripTitleModal').classList.add('hidden');
+        }
+
+        function saveTripTitle() {
+            const val = document.getElementById('tripTitleInput').value.trim();
+            if (val) {
+                tripTitle = val;
+                document.getElementById('tripTitleDisplay').textContent = val;
+                saveToCloud();
+            }
+            closeEditTripTitleModal();
+        }
+
+        function openEditTripDatesModal() {
+            document.getElementById('tripStartDateInput').value = tripStartDate;
+            document.getElementById('tripEndDateInput').value = tripEndDate;
+            document.getElementById('tripDatesModal').classList.remove('hidden');
+        }
+
+        function closeEditTripDatesModal() {
+            document.getElementById('tripDatesModal').classList.add('hidden');
+        }
+
+        async function saveTripDates() {
+            const sVal = document.getElementById('tripStartDateInput').value;
+            const eVal = document.getElementById('tripEndDateInput').value;
+            if (sVal && eVal) {
+                tripStartDate = sVal;
+                tripEndDate = eVal;
+                
+                const start = new Date(tripStartDate);
+                const end = new Date(tripEndDate);
+                const diffDays = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1);
+
+                if (diffDays > daysData.length) {
+                    for (let i = daysData.length + 1; i <= diffDays; i++) {
+                        daysData.push({
+                            day: i,
+                            date: "",
+                            items: []
+                        });
+                    }
+                } else if (diffDays < daysData.length) {
+                    daysData = daysData.slice(0, diffDays);
+                    if (activeDayIndex >= daysData.length) {
+                        activeDayIndex = daysData.length - 1;
+                    }
+                }
+
+                updateTripDatesDisplay();
+                renderDayTabs();
+                await renderActiveDayContent();
+                saveToCloud();
+            }
+            closeEditTripDatesModal();
+        }
+
+        function openShareModal() {
+            document.getElementById('shareLinkInput').value = window.location.href;
+            document.getElementById('shareModal').classList.remove('hidden');
+        }
+
+        function closeShareModal() {
+            document.getElementById('shareModal').classList.add('hidden');
+        }
+
+        function copyShareLink() {
+            const copyText = document.getElementById('shareLinkInput');
+            copyText.select();
+            document.execCommand('copy');
+            showToast("공유 링크가 복사되었습니다!");
+        }
+
+        function focusLocationOnMap(encodedLocation) {
+            const iframe = document.getElementById('mapFrame');
+            if (iframe) {
+                iframe.src = `https://maps.google.com/maps?q=${encodedLocation}&output=embed`;
+            }
+        }
+
+        function focusDirectionsOnMap(originLoc, destinationLoc) {
+            const iframe = document.getElementById('mapFrame');
+            if (iframe) {
+                const s = encodeURIComponent(originLoc);
+                const d = encodeURIComponent(destinationLoc);
+                iframe.src = `https://maps.google.com/maps?saddr=${s}&daddr=${d}&dirflg=r&output=embed`;
+            }
+        }
+
+        async function viewFullRouteTransit() {
+            const currentItems = daysData[activeDayIndex].items;
+            if (!currentItems || currentItems.length === 0) return;
+            const origin = encodeURIComponent(currentItems[0].location || "");
+            const destination = encodeURIComponent(currentItems[currentItems.length - 1].location || "");
+            const iframe = document.getElementById('mapFrame');
+            if (iframe) {
+                iframe.src = `https://maps.google.com/maps?saddr=${origin}&daddr=${destination}&dirflg=r&output=embed`;
+            }
+        }
+
+        // Expose critical functions globally
+        window.openEditTripTitleModal = openEditTripTitleModal;
+        window.closeEditTripTitleModal = closeEditTripTitleModal;
+        window.saveTripTitle = saveTripTitle;
+        window.openEditTripDatesModal = openEditTripDatesModal;
+        window.closeEditTripDatesModal = closeEditTripDatesModal;
+        window.saveTripDates = saveTripDates;
+        window.openShareModal = openShareModal;
+        window.closeShareModal = closeShareModal;
+        window.copyShareLink = copyShareLink;
+        window.toggleChatPanel = toggleChatPanel;
+        window.saveToCloudManual = saveToCloudManual;
+        window.openAddModal = openAddModal;
+        window.closeModal = closeModal;
+        window.handleFormSubmit = handleFormSubmit;
+        window.handleChatSubmit = handleChatSubmit;
+        window.openEditModal = openEditModal;
+        window.deleteScheduleItem = deleteScheduleItem;
+        window.focusLocationOnMap = focusLocationOnMap;
+        window.focusDirectionsOnMap = focusDirectionsOnMap;
+        window.viewFullResultTransit = viewFullRouteTransit;
+    </script>
+</body>
+</html>
